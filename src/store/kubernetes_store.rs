@@ -2,7 +2,7 @@ use core::slice::SlicePattern;
 use std::io::Cursor;
 use std::ops::Deref;
 use std::pin::Pin;
-use std::sync::{Arc, mpsc};
+use std::sync::{Arc};
 
 use futures::stream::TryStreamExt;
 use k8s_openapi::api::core::v1::Secret;
@@ -11,7 +11,7 @@ use kube::Client;
 use kube::ResourceExt;
 use kube::runtime::watcher::Config;
 use kube::runtime::WatchStreamExt;
-use tokio::sync::Mutex;
+use tokio::sync::{mpsc, Mutex};
 use tokio::task::JoinHandle;
 use crate::configuration::KubernetesPkiStoreConfiguration;
 use crate::ParsedPkiData;
@@ -133,7 +133,7 @@ impl<'a> KubernetesSecreteWatcher<'a> {
                         let reader = Cursor::new(data.0);
                         let mut temp_parsed_pki_data = ParsedPkiData::default();
                         parser.parse_pem(&mut temp_parsed_pki_data, reader).unwrap();
-                        notify_tx.send((temp_parsed_pki_data, parsed_pki_data.clone())).unwrap()
+                        notify_tx.send((temp_parsed_pki_data, parsed_pki_data.clone())).await.unwrap()
                     }
                     Ok(())
                 }

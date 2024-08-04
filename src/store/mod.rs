@@ -8,15 +8,12 @@ pub mod spiffe_store;
 #[cfg(test)]
 mod tests {
     use std::pin::pin;
-    use std::sync::{Arc, mpsc};
-    use k8s_openapi::api::core::v1::Node;
-    use kube::Api;
+
+    use kube::runtime::watcher::Config;
+    use kubernetes_mock::make_mocker;
+
     use crate::configuration::KubernetesPkiStoreConfiguration;
     use crate::store::kubernetes_store::KubernetesSecreteWatcher;
-    use kube::runtime::watcher::Config;
-    use kubernetes_mock::{KubernetesMocker, make_mocker};
-    use tokio::sync::Mutex;
-    use crate::ParsedPkiData;
 
     pub struct StoreConfiguration {
         pub pki_kubernetes_namespace: String,
@@ -52,10 +49,11 @@ mod tests {
             pki_kubernetes_resource_keys: vec![],
         };
         let store = pin!(KubernetesSecreteWatcher::new(client,watcher_config, &config));
-        let (notify_tx, notify_rx) = mpsc::channel();
+        //let (notify_tx, notify_rx) = mpsc::channel();
+        let (notify_tx, mut notify_rx) = tokio::sync::mpsc::channel(32);
         store.watch(notify_tx).await.unwrap();
 
-        match notify_rx.recv().unwrap() { (a, b) => {
+        match notify_rx.recv().await.unwrap() { (a, b) => {
             b.get_mut().merge(&mut a);
         } }
     }
