@@ -11,12 +11,14 @@ use rustls_pki_types::{
     PrivatePkcs1KeyDer, PrivatePkcs8KeyDer, PrivateSec1KeyDer, ServerName,
 };
 use x509_parser::certificate::X509Certificate;
+use crate::identity::Identity;
 
 pub mod configuration;
 pub mod generic_private_key;
 pub mod parser;
 pub mod store;
 pub mod validate;
+pub mod identity;
 // Kubernetes cert-manager ask Let's Encrypt for pki for website domain.
 // The pki is stored in a kubernetes Secret
 // We load in the secret and parse it then validate the pki in PEM format.
@@ -26,20 +28,7 @@ pub mod validate;
 //- Certificate Chain: Validates the pki chain up to a trusted root CA.
 // After validating the pki, we watch for kubernetes changes over the secret.
 
-// The server identity, used to prove that it's the server, must hold private key,
-#[derive(Debug)]
-pub struct Identity<'a> {
-    /// Server name, parsed from certificate subject. Used to identify and verify certificate target.
-    pub server_name: ServerName<'a>,
-    /// This server certificate.
-    pub certificate: X509Certificate<'a>,
-    /// The private key for the certificate.
-    pub private_key: PrivateKeyDer<'a>,
-    /// The intermediate certificate between certificate and ca_certificate
-    pub intermediate: Vec<X509Certificate<'a>>,
-    /// CA's certificate is normally pre-installed on a client as a trust anchor.
-    pub ca_certificate: X509Certificate<'a>,
-}
+
 
 pub trait IdentityValidator {
     fn is_valid(&self, identity: Identity) -> bool;
@@ -83,13 +72,3 @@ impl Default for ParsedPkiData<'_> {
     }
 }
 
-impl Identity<'_> {
-    /// Returns the server certificate, intermediate certificates and CA's certificate.
-    fn get_certificate_chain(&self) -> Vec<X509Certificate> {
-        let mut certificate_chain = Vec::new();
-        certificate_chain.push(self.certificate.clone());
-        certificate_chain.append(&mut self.intermediate.clone());
-        certificate_chain.push(self.ca_certificate.clone());
-        certificate_chain
-    }
-}

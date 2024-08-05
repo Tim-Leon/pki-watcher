@@ -63,6 +63,9 @@ pki-watcher = "0.1.0"
 We have several features planned for future releases:
 
 - **OCSP Support**: Implementing Online Certificate Status Protocol (OCSP) for checking certificate revocation status.
+- Split Watcher and Retriever implementations but the ability for the data store to be split between them
+- **File Store Support**
+- **Spiffe Support**
 
 ## Contributing
 

@@ -42,8 +42,8 @@ pub fn validate_certificate_domain(cert: &X509Certificate, server_name: &ServerN
     return name == *server_name;
 }
 
-pub fn validate_expiration(x509: &X509Certificate) -> bool {
-    x509.validity.is_valid()
+pub fn is_certificate_expired(x509: &X509Certificate) -> bool {
+    !x509.validity.is_valid()
 }
 
 pub fn validate_signature(cert: &X509Certificate, private_key: &PrivateKeyDer) -> bool {
@@ -153,7 +153,7 @@ impl PkiValidator {
         }
 
         if self.config.validate_expiration {
-            if !validate_expiration(certificate) {
+            if is_certificate_expired(certificate) {
                 return Err(ValidateCertificateError::CertificateHasExpired);
             }
         }

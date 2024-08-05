@@ -1,4 +1,4 @@
-mod validate;
+pub mod validate;
 
 pub trait PkiValidatorConfiguration {
     fn get_allow_self_signed_certificate(&self) -> bool;
