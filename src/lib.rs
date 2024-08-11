@@ -1,4 +1,5 @@
 #![feature(slice_pattern)]
+#![feature(async_closure)]
 extern crate core;
 
 k8s_openapi::k8s_if_le_1_26! {

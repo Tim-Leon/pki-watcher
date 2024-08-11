@@ -18,6 +18,14 @@ use crate::ParsedPkiData;
 use crate::parser::parse::{KubernetesError, parse_kubernetes_secret, PkiParser};
 use crate::parser::PemParser;
 
+pub trait KubernetesSecreteWatchers {
+
+}
+
+pub trait KubernetesSecreteRetrievers {
+
+}
+
 pub struct KubernetesSecreteWatcherConfigurationInner {
     pub pki_kubernetes_namespace: String,
     pub get_pki_kubernetes_secret_name: String,

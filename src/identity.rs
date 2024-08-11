@@ -27,7 +27,7 @@ pub trait Identities {
 
 }
 
-impl Identities for Identity {
+impl Identities for Identity<'_> {
     fn is_any_self_signed(&self) -> bool {
         for cert in &self.get_certificate_chain() {
             if is_self_signed(cert) {
