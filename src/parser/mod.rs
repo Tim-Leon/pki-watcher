@@ -3,15 +3,13 @@ use std::io::BufRead;
 use async_trait::async_trait;
 use pkcs1::RsaPrivateKey;
 use pkcs8::PrivateKeyInfo;
-use rustls_pki_types::{
-    CertificateDer, PrivatePkcs1KeyDer, PrivatePkcs8KeyDer, PrivateSec1KeyDer,
-};
+use rustls_pki_types::{CertificateDer, PrivatePkcs1KeyDer, PrivatePkcs8KeyDer, PrivateSec1KeyDer};
 use sec1::EcPrivateKey;
 use x509_parser::certificate::X509CertificateParser;
 use x509_parser::prelude::X509Certificate;
 
-use crate::ParsedPkiData;
 use crate::parser::parse::Identities;
+use crate::ParsedPkiData;
 
 pub mod parse;
 
@@ -75,9 +73,9 @@ mod tests {
     use std::io::Cursor;
 
     use crate::configuration::FilePkiStoreConfiguration;
-    use crate::ParsedPkiData;
-    use crate::parser::IdentityParser;
     use crate::parser::parse::{Identities, PkiParser};
+    use crate::parser::IdentityParser;
+    use crate::ParsedPkiData;
 
     struct TestConfig {
         pub file_path: String,
@@ -87,7 +85,6 @@ mod tests {
         fn get_file_path(&self) -> String {
             self.file_path.clone()
         }
-
     }
 
     #[test]
@@ -105,13 +102,12 @@ mod tests {
             let certificate = include_bytes!("../../tests/data/rsa.pem");
             let buf = Cursor::new(certificate);
             pki_parser.parse_pem(&mut parsed_pki_data, buf).unwrap();
-
         }
         // TODO: Fix the test, currently no private keys are included, resulting in zero identities being parsed.
         let mut identities = Identities::default();
-        pki_parser.parse_identity(&mut parsed_pki_data, &mut identities).unwrap();
+        pki_parser
+            .parse_identity(&mut parsed_pki_data, &mut identities)
+            .unwrap();
         println!("{:?}", identities);
     }
-
-
 }

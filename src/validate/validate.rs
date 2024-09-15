@@ -8,8 +8,8 @@ use x509_parser::certificate::X509Certificate;
 use x509_parser::prelude::FromDer;
 use x509_parser::x509::SubjectPublicKeyInfo;
 
-use crate::Identity;
 use crate::validate::PkiValidatorConfiguration;
+use crate::Identity;
 
 #[derive(thiserror::Error, Debug)]
 pub enum ValidateCertificateError {
@@ -33,13 +33,13 @@ pub fn is_self_signed(cert: &X509Certificate) -> bool {
             panic!("pki looks self-signed, but signature verification failed");
         }
     }
-    return false;
+    false
 }
 
 pub fn validate_certificate_domain(cert: &X509Certificate, server_name: &ServerName) -> bool {
     let subject = cert.subject().to_string();
     let name = ServerName::try_from(subject).unwrap();
-    return name == *server_name;
+    name == *server_name
 }
 
 pub fn is_certificate_expired(x509: &X509Certificate) -> bool {
@@ -96,7 +96,7 @@ pub fn validate_certificate_chain(
         )
         .unwrap();
     dbg!(verified_certs);
-    return true;
+    true
 }
 
 pub struct PkiValidatorConfig {
@@ -168,7 +168,7 @@ impl PkiValidator {
                 return Err(ValidateCertificateError::InvalidCertificateChain);
             }
         }
-        return Ok(());
+        Ok(())
     }
 
     fn verify_identity(&self, identity: &Identity) -> Result<(), ValidateCertificateError> {

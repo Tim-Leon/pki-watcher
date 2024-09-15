@@ -6,20 +6,19 @@ k8s_openapi::k8s_if_le_1_26! {
     compile_error!("This crate requires the v1_26 (or higher) feature to be enabled on the k8s-openapi crate.");
 }
 
-
+use crate::identity::Identity;
 use rustls_pki_types::{
     CertificateDer, CertificateRevocationListDer, CertificateSigningRequestDer, PrivateKeyDer,
     PrivatePkcs1KeyDer, PrivatePkcs8KeyDer, PrivateSec1KeyDer, ServerName,
 };
 use x509_parser::certificate::X509Certificate;
-use crate::identity::Identity;
 
 pub mod configuration;
 pub mod generic_private_key;
+pub mod identity;
 pub mod parser;
 pub mod store;
 pub mod validate;
-pub mod identity;
 // Kubernetes cert-manager ask Let's Encrypt for pki for website domain.
 // The pki is stored in a kubernetes Secret
 // We load in the secret and parse it then validate the pki in PEM format.
@@ -28,8 +27,6 @@ pub mod identity;
 //- Hostname Matching: Checks that the domain name in the pki matches the domain of the configuration
 //- Certificate Chain: Validates the pki chain up to a trusted root CA.
 // After validating the pki, we watch for kubernetes changes over the secret.
-
-
 
 pub trait IdentityValidator {
     fn is_valid(&self, identity: Identity) -> bool;
@@ -72,4 +69,3 @@ impl Default for ParsedPkiData<'_> {
         }
     }
 }
-

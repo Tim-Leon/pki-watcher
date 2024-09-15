@@ -2,29 +2,25 @@ use core::slice::SlicePattern;
 use std::io::Cursor;
 use std::ops::Deref;
 use std::pin::Pin;
-use std::sync::{Arc};
+use std::sync::Arc;
 
+use crate::configuration::KubernetesPkiStoreConfiguration;
+use crate::parser::parse::{parse_kubernetes_secret, KubernetesError, PkiParser};
+use crate::parser::PemParser;
+use crate::ParsedPkiData;
 use futures::stream::TryStreamExt;
 use k8s_openapi::api::core::v1::Secret;
+use kube::runtime::watcher::Config;
+use kube::runtime::WatchStreamExt;
 use kube::Api;
 use kube::Client;
 use kube::ResourceExt;
-use kube::runtime::watcher::Config;
-use kube::runtime::WatchStreamExt;
 use tokio::sync::{mpsc, Mutex};
 use tokio::task::JoinHandle;
-use crate::configuration::KubernetesPkiStoreConfiguration;
-use crate::ParsedPkiData;
-use crate::parser::parse::{KubernetesError, parse_kubernetes_secret, PkiParser};
-use crate::parser::PemParser;
 
-pub trait KubernetesSecreteWatchers {
+pub trait KubernetesSecreteWatchers {}
 
-}
-
-pub trait KubernetesSecreteRetrievers {
-
-}
+pub trait KubernetesSecreteRetrievers {}
 
 pub struct KubernetesSecreteWatcherConfigurationInner {
     pub pki_kubernetes_namespace: String,
@@ -39,8 +35,6 @@ pub struct KubernetesSecreteWatcher<'a> {
     parser: PkiParser,
     parsed_pki_data: Arc<Mutex<ParsedPkiData<'a>>>,
 }
-
-
 
 #[derive(Debug)]
 pub struct ResourceInformation<'a> {
@@ -68,7 +62,6 @@ pub async fn load_secrets_from_kubernetes_resource(
     Ok(secret)
 }
 impl KubernetesSecreteWatcher<'_> {
-
     pub fn new(
         client: Client,
         watcher_config: Config,
@@ -118,7 +111,7 @@ impl<'a> KubernetesSecreteWatcher<'a> {
     /// ```
     pub async fn watch<'b>(
         self: Pin<&'b mut Self>,
-        notify_tx: mpsc::Sender<(ParsedPkiData<'b>, Arc<Mutex<ParsedPkiData<'a>>>)>
+        notify_tx: mpsc::Sender<(ParsedPkiData<'b>, Arc<Mutex<ParsedPkiData<'a>>>)>,
     ) -> Result<(), KubernetesSecretWatcherError> {
         let api: Api<Secret> = Api::namespaced(
             self.client.clone(),
@@ -136,12 +129,19 @@ impl<'a> KubernetesSecreteWatcher<'a> {
                 let notify_tx = notify_tx.clone();
                 let parsed_pki_data = parsed_pki_data.clone();
                 async move {
-                    tracing::info!("PKI resource: {}, in namespace: {}", p.name_any(), p.namespace().unwrap_or_default());
+                    tracing::info!(
+                        "PKI resource: {}, in namespace: {}",
+                        p.name_any(),
+                        p.namespace().unwrap_or_default()
+                    );
                     if let Some(data) = p.data.and_then(|d| d.get("data").cloned()) {
                         let reader = Cursor::new(data.0);
                         let mut temp_parsed_pki_data = ParsedPkiData::default();
                         parser.parse_pem(&mut temp_parsed_pki_data, reader).unwrap();
-                        notify_tx.send((temp_parsed_pki_data, parsed_pki_data.clone())).await.unwrap()
+                        notify_tx
+                            .send((temp_parsed_pki_data, parsed_pki_data.clone()))
+                            .await
+                            .unwrap()
                     }
                     Ok(())
                 }
@@ -166,7 +166,6 @@ impl<'a> KubernetesSecreteWatcher<'a> {
             self.parser
                 .parse_pem(temp_parsed_pki.borrow_mut(), cursor)
                 .unwrap()
-
         }
         Ok(())
     }

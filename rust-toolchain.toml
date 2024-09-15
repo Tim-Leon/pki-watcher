@@ -1,0 +1,6 @@
+[toolchain]
+# As of yet, stable is not supported, cause of compiler panic at stack allocation caused by allocaiton );
+channel = "nightly-2024-07-01"
+components = ["miri", "rustfmt", "clippy"]
+targets = []
+profile = "default"

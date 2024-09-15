@@ -1,16 +1,15 @@
-use std::pin::pin;
-use std::sync::{Arc, mpsc};
 use kube::runtime::watcher::Config;
-use tokio::sync::Mutex;
 use pki_watcher::configuration::KubernetesPkiStoreConfiguration;
 use pki_watcher::store::kubernetes_store::KubernetesSecreteWatcher;
+use std::pin::pin;
+use std::sync::{mpsc, Arc};
+use tokio::sync::Mutex;
 
 pub struct StoreConfiguration {
     pub pki_kubernetes_namespace: String,
     pub pki_kubernetes_secret_name: String,
-    pub pki_kubernetes_resource_keys : Vec<String>,
+    pub pki_kubernetes_resource_keys: Vec<String>,
 }
-
 
 impl KubernetesPkiStoreConfiguration for StoreConfiguration {
     fn get_pki_kubernetes_namespace(&self) -> String {
@@ -27,7 +26,7 @@ impl KubernetesPkiStoreConfiguration for StoreConfiguration {
 }
 
 #[test]
-pub async fn test_kubernetes()  {
+pub async fn test_kubernetes() {
     let client = kube::client::Client::try_default().await.unwrap();
     let watcher_config = Config::default();
     let config = StoreConfiguration {
@@ -35,11 +34,17 @@ pub async fn test_kubernetes()  {
         pki_kubernetes_secret_name: "".to_string(),
         pki_kubernetes_resource_keys: vec![],
     };
-    let store = pin!(KubernetesSecreteWatcher::new(client,watcher_config, &config));
+    let store = pin!(KubernetesSecreteWatcher::new(
+        client,
+        watcher_config,
+        &config
+    ));
     let (notify_tx, notify_rx) = mpsc::channel();
     store.watch(notify_tx).await.unwrap();
 
-    match notify_rx.recv().unwrap() { (a, mut b) => {
-        b.get_mut().merge(a);
-    } }
+    match notify_rx.recv().unwrap() {
+        (a, mut b) => {
+            b.get_mut().merge(a);
+        }
+    }
 }

@@ -1,6 +1,6 @@
+use crate::validate::validate::{is_certificate_expired, is_self_signed};
 use rustls_pki_types::{PrivateKeyDer, ServerName};
 use x509_parser::certificate::X509Certificate;
-use crate::validate::validate::{is_self_signed, is_certificate_expired};
 
 // The server identity, used to prove that it's the server, must hold private key,
 #[derive(Debug)]
@@ -24,17 +24,16 @@ pub trait Identities {
     fn is_any_expired(&self) -> bool;
     /// Returns the server certificate, intermediate certificates and CA's certificate.
     fn get_certificate_chain(&self) -> Vec<X509Certificate>;
-
 }
 
 impl Identities for Identity<'_> {
     fn is_any_self_signed(&self) -> bool {
         for cert in &self.get_certificate_chain() {
             if is_self_signed(cert) {
-                return true
+                return true;
             }
         }
-        return false
+        return false;
     }
 
     fn is_any_expired(&self) -> bool {

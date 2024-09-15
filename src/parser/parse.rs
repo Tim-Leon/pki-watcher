@@ -1,25 +1,24 @@
 use core::slice::SlicePattern;
+use std::collections::HashMap;
 use std::{
     io::{BufRead, Cursor},
     iter,
 };
-use std::collections::HashMap;
 
 use der::{Decode, Encode};
 use k8s_openapi::api::core::v1::Secret;
 use pkcs1::RsaPrivateKey;
 use rustls_pemfile::read_one;
 use rustls_pki_types::{
-    CertificateDer, PrivateKeyDer, PrivatePkcs1KeyDer, PrivateSec1KeyDer,
-    ServerName,
+    CertificateDer, PrivateKeyDer, PrivatePkcs1KeyDer, PrivateSec1KeyDer, ServerName,
 };
 use spiffe::svid::x509::X509Svid;
-use x509_parser::{certificate::X509Certificate, error::X509Error, nom::Parser, x509::X509Version};
 use x509_parser::prelude::X509CertificateParser;
 use x509_parser::public_key::{PublicKey, RSAPublicKey};
+use x509_parser::{certificate::X509Certificate, error::X509Error, nom::Parser, x509::X509Version};
 
-use crate::{Identity, ParsedPkiData};
 use crate::parser::{IdentityParser, PemParser};
+use crate::{Identity, ParsedPkiData};
 
 #[derive(thiserror::Error, Debug)]
 pub enum ParseKubernetesPemSecreteError {
@@ -289,13 +288,13 @@ impl IdentityParser for PkiParser {
                                 server_name: ServerName::try_from(
                                     certificate.subject.to_string().as_str(),
                                 )
-                                    .unwrap()
-                                    .to_owned(),
+                                .unwrap()
+                                .to_owned(),
                                 certificate: certificate.clone(),
                                 private_key: PrivateKeyDer::try_from(PrivatePkcs1KeyDer::from(
                                     private_key.to_der().unwrap(),
                                 ))
-                                    .unwrap(),
+                                .unwrap(),
                                 intermediate,
                                 ca_certificate: ca,
                             };
@@ -305,7 +304,8 @@ impl IdentityParser for PkiParser {
                     }
                 }
                 PublicKey::EC(ec) => {
-                    for private_key in pki_data_source.sec1
+                    for private_key in pki_data_source
+                        .sec1
                         .iter()
                         .map(|x| sec1::EcPrivateKey::from_der(x.secret_sec1_der()).unwrap())
                     {
@@ -320,9 +320,15 @@ impl IdentityParser for PkiParser {
                                 &ca_certificate,
                             )?;
                             let identity = Identity {
-                                server_name: ServerName::try_from(certificate.subject.to_string().as_str()).unwrap().to_owned(),
+                                server_name: ServerName::try_from(
+                                    certificate.subject.to_string().as_str(),
+                                )
+                                .unwrap()
+                                .to_owned(),
                                 certificate: certificate.clone(),
-                                private_key: PrivateKeyDer::Sec1(PrivateSec1KeyDer::from(private_key.to_der().unwrap())),
+                                private_key: PrivateKeyDer::Sec1(PrivateSec1KeyDer::from(
+                                    private_key.to_der().unwrap(),
+                                )),
                                 intermediate,
                                 ca_certificate: ca,
                             };
