@@ -1,7 +1,7 @@
 use crate::parser::parse::PkiParser;
 use crate::store::{PkiStore, PkiWatcherEventHandler};
 use crate::ParsedPkiData;
-use notify::event::ModifyKind;
+use notify::event::{EventAttributes, ModifyKind};
 use notify::{
     Config, Event, EventHandler, EventKind, INotifyWatcher, RecommendedWatcher, RecursiveMode,
     Watcher,
@@ -23,9 +23,10 @@ pub enum FileStoreError {}
 
 pub trait PkiFileStoreWatchers {
     type Error;
-    async fn watch<E: std::marker::Send + 'static>(
+    type Event;
+    async fn watch(
         &mut self,
-        event_handler: &mut Box<E>,
+        event_handler: &mut dyn PkiWatcherEventHandler<Self::Event>,
     ) -> Result<(), Self::Error>;
 }
 
@@ -54,79 +55,99 @@ impl PkiFileStoreRetrievers for FileStore<'_> {
         Ok(())
     }
 }
-struct EventHandlerAdapter<E: Send> {
-    pki_event_handler: Box<dyn PkiWatcherEventHandler<E>>,
-}
 
-impl<E: std::marker::Send + 'static> EventHandler for EventHandlerAdapter<E> {
-    fn handle_event(&mut self, event: notify::Result<Event>) {
-        let event = event.unwrap();
-        self.pki_event_handler.handle_event(event);
-    }
-}
-impl PkiFileStoreWatchers for FileStore<'_> {
-    type Error = FileStoreError;
-
-    async fn watch<E: std::marker::Send + 'static>(
-        self: &mut Self,
-        watcher_event: impl PkiWatcherEventHandler<E> + 'static,
-    ) -> Result<(), Self::Error> {
-        let path = self.path.clone();
-        let adapter = EventHandlerAdapter { pki_event_handler: Box::new(watcher_event) };
-        RecommendedWatcher::new(adapter, Config::default())
-            .unwrap()
-            .watch(path.as_path(), RecursiveMode::Recursive)
-            .unwrap();
-        Ok(())
-    }
-}
-
-pub struct DefaultPkiFileStoreEventHandling<'a> {
-    pub path: String,
-    pub parsed_pki_data: Arc<Mutex<ParsedPkiData<'a>>>,
-    pub parser: PkiParser,
-}
-
-impl<E> PkiWatcherEventHandler<E> for DefaultPkiFileStoreEventHandling<'_> where E: notify::event::Event {
-    fn handle_event(&mut self, event: E) {
-        futures::executor::block_on(async || {
-            let path = self.path.clone();
-            let kind = event.kind;
-
-            match kind {
-                EventKind::Any => {}
-                EventKind::Access(_) => {}
-                EventKind::Create(_) => {}
-                EventKind::Modify(modification) => match modification {
-                    ModifyKind::Any => {}
-
-                    ModifyKind::Data(_) => {
-                        let reader = tokio::fs::read(path).await.unwrap();
-                        let is_cleared_on_update = false;
-                        let cursor = Cursor::new(reader);
-                        let mut temp_parsed_pki_data = self.parsed_pki_data.deref().lock().await;
-                        if !is_cleared_on_update {
-                            self.parser
-                                .parse_pem(temp_parsed_pki_data.borrow_mut(), cursor)
-                                .unwrap();
-                        }
-                    }
-
-                    ModifyKind::Metadata(_) => {}
-                    ModifyKind::Name(_) => {}
-                    ModifyKind::Other => {}
-                },
-                EventKind::Remove(_) => {}
-                EventKind::Other => {}
-            }
-        })
-    }
-}
-
-impl EventHandler for DefaultPkiFileStoreEventHandling<'static> {
-    fn handle_event(&mut self, event: notify::Result<Event>) {
-        use PkiWatcherEventHandler;
-        let event = event.unwrap();
-        PkiWatcherEventHandler::handle_event(self, event);
-    }
-}
+//impl PkiFileStoreWatchers for FileStore<'_> {
+//    type Error = FileStoreError;
+//
+//    type Event = Event;
+//    async fn watch(
+//        self: &mut Self,
+//        handler: impl PkiWatcherEventHandler<Self::Event>,
+//    ) -> Result<(), Self::Error> {
+//        let path = self.path.clone();
+//        RecommendedWatcher::new(handler, Config::default())
+//            .unwrap()
+//            .watch(path.as_path(), RecursiveMode::Recursive)
+//            .unwrap();
+//        Ok(())
+//    }
+//}
+//
+//impl <F> EventHandler for DefaultPkiFileStoreEventHandling<'_> {
+//    fn handle_event(&mut self, event: notify::Result<Event>) {
+//        todo!()
+//    }
+//}
+//
+//pub struct DefaultPkiFileStoreEventHandling<'a> {
+//    pub path: String,
+//    pub parsed_pki_data: Arc<Mutex<ParsedPkiData<'a>>>,
+//    pub parser: PkiParser,
+//}
+//
+//pub trait FileEventExt {
+//    fn get_paths(&self) -> &Vec<PathBuf>;
+//
+//    fn get_attrs(&self) -> &EventAttributes;
+//
+//    fn get_kind(&self) -> &EventKind;
+//}
+//
+//impl FileEventExt for Event {
+//    fn get_paths(&self) -> &Vec<PathBuf> {
+//        &self.paths
+//    }
+//
+//    fn get_attrs(&self) -> &EventAttributes {
+//        &self.attrs
+//    }
+//
+//    fn get_kind(&self) -> &EventKind {
+//        &self.kind
+//    }
+//}
+//
+//impl<E> PkiWatcherEventHandler<E> for DefaultPkiFileStoreEventHandling<'_> where E: FileEventExt {
+//    fn handle_event(&mut self, event: E) {
+//        let kind = event.get_kind();
+//        let path =  event.get_paths();
+//        let attrs = event.get_attrs();
+//
+//        futures::executor::block_on(async move |kind, path, attrs| {
+//            match kind {
+//                EventKind::Any => {}
+//                EventKind::Access(_) => {}
+//                EventKind::Create(_) => {}
+//                EventKind::Modify(modification) => match modification {
+//                    ModifyKind::Any => {}
+//
+//                    ModifyKind::Data(_) => {
+//                        let reader = tokio::fs::read(path).await.unwrap();
+//                        let is_cleared_on_update = false;
+//                        let cursor = Cursor::new(reader);
+//                        let mut temp_parsed_pki_data = self.parsed_pki_data.deref().lock().await;
+//                        if !is_cleared_on_update {
+//                            self.parser
+//                                .parse_pem(temp_parsed_pki_data.borrow_mut(), cursor)
+//                                .unwrap();
+//                        }
+//                    }
+//
+//                    ModifyKind::Metadata(_) => {}
+//                    ModifyKind::Name(_) => {}
+//                    ModifyKind::Other => {}
+//                },
+//                EventKind::Remove(_) => {}
+//                EventKind::Other => {}
+//            }
+//        })
+//    }
+//}
+//
+//impl EventHandler for DefaultPkiFileStoreEventHandling<'static> {
+//    fn handle_event(&mut self, event: notify::Result<Event>) {
+//        use PkiWatcherEventHandler;
+//        let event = event.unwrap();
+//        PkiWatcherEventHandler::handle_event(self, event);
+//    }
+//}
