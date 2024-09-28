@@ -33,7 +33,7 @@ impl Identities for Identity<'_> {
                 return true;
             }
         }
-        return false;
+        false
     }
 
     fn is_any_expired(&self) -> bool {
@@ -42,7 +42,7 @@ impl Identities for Identity<'_> {
                 return true;
             }
         }
-        return false;
+        false
     }
 
     fn get_certificate_chain(&self) -> Vec<X509Certificate> {

@@ -1,0 +1,30 @@
+[package]
+name = "pki-watcher-examples"
+publish = false
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+
+
+[package.metadata.release]
+release = false
+
+[features]
+
+
+[dev-dependencies]
+
+
+
+[[example]]
+name = "file_watcher"
+path = "file_watcher.rs"
+
+[[example]]
+name = "kuberentes_watcher"
+path = "kubernetes_watcher.rs"
+
+[[example]]
+name = "spiffe_watcher"
+path = "spiffe_watcher.rs"
